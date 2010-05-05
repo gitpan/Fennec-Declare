@@ -13,7 +13,7 @@ name: Fennec-Declare
 provides:
   Fennec::Declare:
     file: lib/Fennec/Declare.pm
-    version: 0.001
+    version: 0.002
 requires:
   B::Compiling: 0.02
   B::Hooks::EndOfScope: 0.08
@@ -23,4 +23,4 @@ resources:
   bugtracker: http://github.com/exodist/Fennec-Declare/issues
   license: http://dev.perl.org/licenses/
   repository: http://github.com/exodist/Fennec-Declare
-version: 0.001
+version: 0.002

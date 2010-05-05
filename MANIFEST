@@ -1,7 +1,7 @@
 Build.PL
 lib/Fennec/Declare.pm
 MANIFEST			This list of files
+META.yml
 README
 t/Fennec.t
 t/Fennec/Declare.pm
-META.yml

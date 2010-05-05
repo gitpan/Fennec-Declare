@@ -5,7 +5,7 @@ use Devel::Declare;
 use B::Compiling;
 use B::Hooks::EndOfScope;
 
-our $VERSION = 0.001;
+our $VERSION = 0.002;
 our @DECLARATORS = qw/ tests it describe cases case /;
 
 sub import {
@@ -66,7 +66,7 @@ sub parser {
 
     my $newline = "$indent$dec $name => ( "
                 . ( $proto ? "$proto, " : "" )
-                . "method => sub { BEGIN { Fennec::Declare::inject_scope }; $end\n";
+                . "method => sub { BEGIN { Fennec::Declare::inject_scope }; my \$self = shift; $end\n";
 
     Devel::Declare::set_linestr($newline);
 }
@@ -104,6 +104,27 @@ of possible bad ways. It adds new parsing capabilities to perl, but using it
 often still requires code to parse perl. Only perl can parse perl, as such
 there are likely many edge cases that have not been accounted for.
 
+=head1 SUGAR PROVIDED
+
+Shorter syntax, no more '=> sub', and semicolon is no longer required at the
+end of the code block. Optinally can still provide proto hash items like skip
+and todo. Also automatically shifts $self off. No need for my $self = shift.
+
+    # Original
+    subname item_name => ( method => sub { my $self = shift; ... }, %proto );
+
+    # Sugar-coated
+    subname item_name (%proto) { ... }
+    # or
+    subname item_name { ... }
+
+=head3 Note on $self
+
+my $self = shift; is always inserted into the beginning of the codeblock. This
+even happens on items that are not run as methods such as case {}. Since Fennec
+NEVER sends arguments to workflow/tester blocks this is harmless, $self will
+just be undefined in such cases.
+
 =head1 SYNOPSIS
 
     package My::Test
@@ -113,6 +134,10 @@ there are likely many edge cases that have not been accounted for.
     use Fennec::Declare;
 
     tests simple {
+        ok( $self, "Magically got self" );
+        $self->isa_ok( 'My::Test' );
+        $self->isa_ok( 'Fennec::TestFile' );
+
         ok( 1, "In declared tests!" );
     }
 
@@ -136,17 +161,30 @@ there are likely many edge cases that have not been accounted for.
     }
 
     cases some_cases {
+        ok( $self, "Magically got self" );
+        $self->isa_ok( 'My::Test' );
+        $self->isa_ok( 'Fennec::TestFile' );
+
         my $x = 0;
         case case_a { $x = 10 }
         case case_b { $x = 100 }
-        case case_c { $x = 1000 }
+        case case_c {
+            # Cases are not methods, but $self is still provided.
+            ok( !$self, "Cases are not methods" );
+
+            $x = 1000
+        }
 
         tests divisible_by_ten { ok( !($x % 10), "$x/10" )}
         tests positive { ok( $x, $x )}
     }
 
     describe a_describe {
-        my $x = 0;
+        ok( $self, "Magically got self" );
+        $self->isa_ok( 'My::Test' );
+        $self->isa_ok( 'Fennec::TestFile' );
+
+        my $x;
 
         # Note, SPEC before/after blocks are not enhanced
         before_each { $x = 10 };
