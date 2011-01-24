@@ -1,229 +1,90 @@
 package Fennec::Declare;
 use strict;
 use warnings;
-use Devel::Declare;
-use B::Compiling;
-use B::Hooks::EndOfScope;
 
-our $VERSION = 0.002;
-our @DECLARATORS = qw/ tests it describe cases case /;
+our $VERSION = "1.000_1";
 
-sub import {
+use base 'Fennec';
+require Fennec::Declare::Magic;
+
+sub defaults {
     my $class = shift;
-    my $caller = caller;
-    my @add_declarators = @_;
+    my %defaults = $class->SUPER::defaults();
 
-    die( "Fennec::Declare can only be used in a Fennec test file" )
-        unless $caller->isa( 'Fennec::TestFile' );
+    push @{ $defaults{'utils'} } => 'Fennec::Declare::Magic';
 
-    Devel::Declare->setup_for(
-        $caller,
-        { map {
-            my $dec = $_;
-            $dec => { const => sub { parser( $dec )}}
-        } ( @DECLARATORS, @add_declarators )}
-    );
-}
-
-sub parser {
-    my ($dec) = @_;
-    my $line = Devel::Declare::get_linestr();
-    return if $line =~ m/^\s*$dec .*(,|=>).*\(/;
-    return if $line =~ m/^\s*$dec .*(,|=>)\s+sub(\(.*\))?\s?{/;
-
-    $line =~ m/^(\s*)$dec \s+ ('[^']*'|"[^"]*"|\w+) \s+ (.*) {(.*)?$/x;
-    my ( $indent, $name, $extra, $end ) = ( $1, $2, $3, $4 );
-    $indent ||= "";
-
-    my $proto;
-    if ( $extra ) {
-        $extra =~ s/(\(.*\))//g;
-        $proto = $1;
-        $proto =~ s/(^\s+|\s+$)//g if $proto;
-        $extra =~ s/(^\s+|\s+$)//g if $extra;
-    }
-
-    my @errors;
-    push @errors => "syntax error near: '$extra'" if $extra;
-    push @errors => "syntax error, could not parse name from: '$line'" unless $name;
-    $_ =~ s/\n//smg for @errors;
-    my $file = PL_compiling->file;
-    $file = '(eval)' if $file =~ m/\(\s*eval\s*\d+\)/;
-    die(
-        "===================\n"
-        . join( "\n", @errors )
-        . " at " . $file
-        . " line " . PL_compiling->line
-        . "\n\n"
-        . "Syntax is: $dec name (%options) { ... }\n"
-        . "       Or: $dec 'long name' (%options) { ... }\n"
-        . "       Or: $dec name { ... }\n"
-        . "       Or: $dec 'long name' { ... }\n\n"
-    ) if( @errors );
-
-    $name =~ s/(^\s+|\s+$)//g;
-    $proto =~ s/^\s*\((.*)\)\s*$/$1/ if $proto;
-
-    my $newline = "$indent$dec $name => ( "
-                . ( $proto ? "$proto, " : "" )
-                . "method => sub { BEGIN { Fennec::Declare::inject_scope }; my \$self = shift; $end\n";
-
-    Devel::Declare::set_linestr($newline);
-}
-
-sub inject_scope {
-    on_scope_end {
-        my $linestr = Devel::Declare::get_linestr;
-        my $offset = Devel::Declare::get_linestr_offset;
-        substr($linestr, $offset, 0) = ');';
-        Devel::Declare::set_linestr($linestr);
-    };
+    return( %defaults );
 }
 
 1;
 
 __END__
 
-=pod
-
 =head1 NAME
 
-Fennec::Declare - Nice syntax for Fennec via Devel::Declare
+Fennec::Declare - Declarative interface for Fennec.
 
 =head1 DESCRIPTION
 
-Fennec is useful, but its syntax is not as nice as it could be. Leaving
-Devel::Declare out of core is a feature, but that does nto mean it shouldn't
-exist at all. This module provides Devel::Declare syntax enhancements to
-Fennec.
-
-=head1 WARNING: EXPERIMENTAL
-
-L<Devel::Declare> is better than a source filter, but still magic in all kinds
-of possible bad ways. It adds new parsing capabilities to perl, but using it
-often still requires code to parse perl. Only perl can parse perl, as such
-there are likely many edge cases that have not been accounted for.
-
-=head1 SUGAR PROVIDED
-
-Shorter syntax, no more '=> sub', and semicolon is no longer required at the
-end of the code block. Optinally can still provide proto hash items like skip
-and todo. Also automatically shifts $self off. No need for my $self = shift.
-
-    # Original
-    subname item_name => ( method => sub { my $self = shift; ... }, %proto );
-
-    # Sugar-coated
-    subname item_name (%proto) { ... }
-    # or
-    subname item_name { ... }
-
-=head3 Note on $self
-
-my $self = shift; is always inserted into the beginning of the codeblock. This
-even happens on items that are not run as methods such as case {}. Since Fennec
-NEVER sends arguments to workflow/tester blocks this is harmless, $self will
-just be undefined in such cases.
-
-=head1 SYNOPSIS
-
-    package My::Test
-    use strict;
-    use warnings;
-    use Fennec;
-    use Fennec::Declare;
-
-    tests simple {
-        ok( $self, "Magically got self" );
-        $self->isa_ok( 'My::Test' );
-        $self->isa_ok( 'Fennec::TestFile' );
-
-        ok( 1, "In declared tests!" );
-    }
-
-    tests 'complicated name' {
-        ok( 1, "Complicated name!" );
-    }
-
-    tests old => sub {
-        ok( 1, "old style still works" );
-    };
-
-    tests old_deep => (
-        method => sub { ok( 1, "old with depth" )},
-    );
-
-    # Currently this does not work because of Fennec bug #58
-    # http://github.com/exodist/Fennec/issues#issue/58
-    # The syntax enhancement does as it should.
-    tests add_specs ( todo => 'not really todo' ) {
-        ok( 0, "This should be todo" );
-    }
-
-    cases some_cases {
-        ok( $self, "Magically got self" );
-        $self->isa_ok( 'My::Test' );
-        $self->isa_ok( 'Fennec::TestFile' );
-
-        my $x = 0;
-        case case_a { $x = 10 }
-        case case_b { $x = 100 }
-        case case_c {
-            # Cases are not methods, but $self is still provided.
-            ok( !$self, "Cases are not methods" );
-
-            $x = 1000
-        }
-
-        tests divisible_by_ten { ok( !($x % 10), "$x/10" )}
-        tests positive { ok( $x, $x )}
-    }
-
-    describe a_describe {
-        ok( $self, "Magically got self" );
-        $self->isa_ok( 'My::Test' );
-        $self->isa_ok( 'Fennec::TestFile' );
-
-        my $x;
-
-        # Note, SPEC before/after blocks are not enhanced
-        before_each { $x = 10 };
-        after_each { $x = 0 };
-        it is_ten { is( $x, 10, "x is 10" ); $x = 100 }
-        it is_not_100 { isnt( $x, 100, "x is not 100" ); $x = 100 }
-    }
-
-    1;
-
-=head1 AUTOMATICALLY ENHANCED
-
-Using Fennec::Declare automatically provides enhancements to the following:
+This is a declarative interface for L<Fennec>. In short this improves the
+syntax used to define tests with Fennec.
 
 =over 4
 
-=item tests
+=item No more name => sub
 
-=item cases
+=item no more semicolon to end the test sub.
 
-=item case
+=item overrides decribe, cases, case, it, tests, before_* after_*
 
-=item describe
+    describe name { ... }
 
-=item it
+instead of
+
+    describe name => sub { ... };
 
 =back
 
-=head1 ENHANCING SYNTAX FOR OTHERS
+=head1 SYNOPSIS
 
-    use Fennec::Declare @names_of_subs_to_enahnce;
+    package Declare::Test;
+    use strict;
+    use warnings;
 
-So long as a sub takes for the form of:
+    use Fennec::Declare;
 
-    subname item_name => ( method => sub { ... });
+    tests foo {
+        ok( 1, "Declarative test!" );
+    }
 
-Fennec::Declare can enhance it. Simply provide the subs name to the use
-statement. before_XXX and after_XXX do not take this form, and thusly have not
-been enhanced.
+    tests old => sub {
+        ok( 1, "old style" );
+    };
+
+    describe blah {
+        tests group_a { ok( 1, 'a' )}
+        tests group_b { ok( 1, 'b' )}
+        tests group_c { ok( 1, 'c' )}
+        tests group_d { ok( 1, 'd' )}
+        tests group_e { ok( 1, 'e' )}
+        describe foo {
+            tests group_x { ok( 1, 'x' )}
+        }
+    };
+
+    tests todo_group (todo => "This is a todo group") {
+        ok( 0, "This should fail, no worries" )
+    }
+
+    tests should_fail (should_fail => 1) {
+        die "You should not see this!"
+    }
+
+    tests skip_group (skip => "This is a skip group") {
+        ok( 0, "You should not see this!" )
+    }
+
+    1;
 
 =head1 AUTHORS
 
@@ -231,10 +92,10 @@ Chad Granum L<exodist7@gmail.com>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2010 Chad Granum
+Copyright (C) 2011 Chad Granum
 
 Fennec-Declare is free software; Standard perl licence.
 
 Fennec-Declare is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE.  See the license for more details.
+FOR A PARTICULAR PURPOSE. See the license for more details.

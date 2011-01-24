@@ -9,15 +9,16 @@ my $build = Module::Build->new(
     dist_author => 'Chad Granum <exodist7@gmail.com>',
     create_readme => 1,
     requires => {
-        'Fennec' => 0.018,
-        'Devel::Declare' => 0.006000,
-        'B::Compiling' => 0.02,
-        'B::Hooks::EndOfScope' => 0.08,
+        'Fennec' => '1.000_3',
+        'Exporter::Declare' => '0.103',
+        'Devel::Declare::Parser' => '0.017',
+        'Devel::Declare::Parser::Fennec' => '0.004',
     },
     meta_merge => {
         resources => {
             repository  => 'http://github.com/exodist/Fennec-Declare',
             bugtracker  => 'http://github.com/exodist/Fennec-Declare/issues',
+            homepage    => 'http://open-exodus.net/projects/Fennec-Declare'
         },
     }
 );

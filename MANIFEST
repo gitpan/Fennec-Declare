@@ -1,7 +1,7 @@
 Build.PL
 lib/Fennec/Declare.pm
+lib/Fennec/Declare/Magic.pm
 MANIFEST			This list of files
-META.yml
+t/Acceptance.t
 README
-t/Fennec.t
-t/Fennec/Declare.pm
+META.yml
