@@ -4,7 +4,7 @@ author:
   - 'Chad Granum <exodist7@gmail.com>'
 configure_requires:
   Module::Build: 0.36
-generated_by: 'Module::Build version 0.3603'
+generated_by: 'Module::Build version 0.3607'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -13,17 +13,17 @@ name: Fennec-Declare
 provides:
   Fennec::Declare:
     file: lib/Fennec/Declare.pm
-    version: 1.000_1
+    version: 1.000
   Fennec::Declare::Magic:
     file: lib/Fennec/Declare/Magic.pm
 requires:
   Devel::Declare::Parser: 0.017
   Devel::Declare::Parser::Fennec: 0.004
   Exporter::Declare: 0.103
-  Fennec: 1.000_3
+  Fennec: 1.000
 resources:
   bugtracker: http://github.com/exodist/Fennec-Declare/issues
   homepage: http://open-exodus.net/projects/Fennec-Declare
   license: http://dev.perl.org/licenses/
   repository: http://github.com/exodist/Fennec-Declare
-version: 1.000_1
+version: 1.000
