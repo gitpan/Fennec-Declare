@@ -2,7 +2,7 @@ package Fennec::Declare;
 use strict;
 use warnings;
 
-our $VERSION = "1.001";
+our $VERSION = "1.002";
 
 use base 'Fennec';
 require Fennec::Declare::Magic;
@@ -35,7 +35,7 @@ syntax used to define tests with Fennec.
 
 =item no more semicolon to end the test sub.
 
-=item overrides decribe, cases, case, it, tests, before_* after_*
+=item overrides describe, cases, case, it, tests, before_* after_*
 
     describe name { ... }
 

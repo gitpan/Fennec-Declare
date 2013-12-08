@@ -2,7 +2,6 @@ Build.PL
 lib/Fennec/Declare.pm
 lib/Fennec/Declare/Magic.pm
 MANIFEST			This list of files
-perltidy.ERR
 README
 t/Acceptance.t
 META.yml
